@@ -1,323 +1,572 @@
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
-local lp = game.Players.LocalPlayer
-local rs = game:GetService("RunService")
-local ts = game:GetService("TeleportService")
-local ps = game:GetService("HttpService")
-local lighting = game:GetService("Lighting")
-local sgui = game:GetService("StarterGui")
-local uis = game:GetService("UserInputService")
-local tweens = game:GetService("TweenService")
+-- =======================================================
+-- BLAZE HUB | Roblox Script UI (Blue & Pastel Black Theme)
+-- Fully Integrated with Multiple Universal Scripts
+-- =======================================================
 
--- [ CUSTOM PRESTIGE NOTIFICATION ] - ระบบแจ้งเตือน 2 ภาษา
-local function SendPremiumNotify(title, text, duration)
-    pcall(function()
-        local notifyGui = Instance.new("ScreenGui")
-        notifyGui.Name = "NightHubNotify"
-        notifyGui.Parent = game:GetService("CoreGui")
-        
-        local frame = Instance.new("Frame")
-        frame.Size = UDim2.new(0, 310, 0, 85)
-        frame.Position = UDim2.new(1, 300, 0, 50)
-        frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-        frame.BorderSizePixel = 0
-        frame.Parent = notifyGui
-        
-        local round = Instance.new("UICorner") round.CornerRadius = UDim.new(0, 10) round.Parent = frame
-        local stroke = Instance.new("UIStroke") stroke.Thickness = 2.5 stroke.Color = Color3.fromRGB(0, 162, 255) stroke.Parent = frame
-        
-        local tLabel = Instance.new("TextLabel")
-        tLabel.Size = UDim2.new(1, -20, 0, 25) tLabel.Position = UDim2.new(0, 12, 0, 6) tLabel.BackgroundTransparency = 1
-        tLabel.Text = "🔱 " .. title tLabel.TextColor3 = Color3.fromRGB(255, 215, 0) tLabel.TextSize = 13 tLabel.Font = Enum.Font.GothamBold tLabel.TextXAlignment = Enum.TextXAlignment.Left tLabel.Parent = frame
-        
-        local descLabel = Instance.new("TextLabel")
-        descLabel.Size = UDim2.new(1, -20, 0, 45) descLabel.Position = UDim2.new(0, 12, 0, 32) descLabel.BackgroundTransparency = 1
-        descLabel.Text = text descLabel.TextColor3 = Color3.fromRGB(200, 200, 200) descLabel.TextSize = 11 descLabel.Font = Enum.Font.Gotham descLabel.TextWrapped = true descLabel.TextXAlignment = Enum.TextXAlignment.Left descLabel.Parent = frame
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
 
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Parent UI Detection (Support Delta / Executer)
+local parent = (gethui and gethui()) or (syn and syn.protect_gui) or game:GetService("CoreGui") or PlayerGui
+
+if parent:FindFirstChild("BlazeHubGui") then
+    parent:FindFirstChild("BlazeHubGui"):Destroy()
+end
+
+-- ScreenGui Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BlazeHubGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = parent
+
+-- State Variables
+local SpeedEnabled = false
+local WalkSpeedValue = 32
+local JumpEnabled = false
+local JumpPowerValue = 100
+local InfJumpEnabled = false
+local NoclipEnabled = false
+
+local SkyAFKEnabled = false
+local AutoKillEnabled = false
+local SilentAimEnabled = false
+local ESPEnabled = false
+
+local SkyPlatform = nil
+local DEFAULT_SPEED = 16
+local DEFAULT_JUMP = 50
+
+-- =======================================================
+-- 1. TOGGLE BUTTON (ปุ่มเปิด/ปิด UI ลอยข้างจอ)
+-- =======================================================
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Size = UDim2.new(0, 48, 0, 48)
+ToggleBtn.Position = UDim2.new(0, 15, 0.5, -24)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Text = "B"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
+ToggleBtn.TextSize = 24
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 12)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color = Color3.fromRGB(0, 170, 255)
+ToggleStroke.Thickness = 2
+ToggleStroke.Parent = ToggleBtn
+
+-- =======================================================
+-- 2. MAIN WINDOW
+-- =======================================================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 520, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(0, 150, 230)
+MainStroke.Thickness = 1.5
+MainStroke.Parent = MainFrame
+
+-- Top Bar
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "BLAZE HUB | Blue & Pastel Edition"
+Title.TextColor3 = Color3.fromRGB(0, 170, 255)
+Title.TextSize = 15
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "CloseBtn"
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = TopBar
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Name = "MinBtn"
+MinBtn.Size = UDim2.new(0, 25, 0, 25)
+MinBtn.Position = UDim2.new(1, -55, 0, 5)
+MinBtn.BackgroundTransparency = 1
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
+MinBtn.TextSize = 18
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.Parent = TopBar
+
+-- =======================================================
+-- DRAGGABLE & UI BUTTON EVENTS
+-- =======================================================
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+local isMinimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    local SideBarRef = MainFrame:FindFirstChild("SideBar")
+    local ContentContainerRef = MainFrame:FindFirstChild("ContentContainer")
+    if SideBarRef and ContentContainerRef then
+        SideBarRef.Visible = not isMinimized
+        ContentContainerRef.Visible = not isMinimized
+    end
+    if isMinimized then
+        MainFrame.Size = UDim2.new(0, 520, 0, 35)
+        MinBtn.Text = "+"
+    else
+        MainFrame.Size = UDim2.new(0, 520, 0, 320)
+        MinBtn.Text = "-"
+    end
+end)
+
+-- ระบบลากหน้าจอ (Draggable)
+local dragging, dragInput, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- =======================================================
+-- 3. SIDEBAR & CONTENT CONTAINER
+-- =======================================================
+local SideBar = Instance.new("Frame")
+SideBar.Name = "SideBar"
+SideBar.Size = UDim2.new(0, 130, 1, -35)
+SideBar.Position = UDim2.new(0, 0, 0, 35)
+SideBar.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+SideBar.BorderSizePixel = 0
+SideBar.Parent = MainFrame
+
+local SideList = Instance.new("UIListLayout")
+SideList.Padding = UDim.new(0, 5)
+SideList.SortOrder = Enum.SortOrder.LayoutOrder
+SideList.Parent = SideBar
+
+local SidePadding = Instance.new("UIPadding")
+SidePadding.PaddingTop = UDim.new(0, 10)
+SidePadding.PaddingLeft = UDim.new(0, 8)
+SidePadding.PaddingRight = UDim.new(0, 8)
+SidePadding.Parent = SideBar
+
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Name = "ContentContainer"
+ContentContainer.Size = UDim2.new(1, -140, 1, -45)
+ContentContainer.Position = UDim2.new(0, 135, 0, 40)
+ContentContainer.BackgroundTransparency = 1
+ContentContainer.Parent = MainFrame
+
+local tabFrames = {}
+local tabButtons = {}
+
+local function createTab(tabName)
+    local TabBtn = Instance.new("TextButton")
+    TabBtn.Name = "Tab_" .. tabName
+    TabBtn.Size = UDim2.new(1, 0, 0, 32)
+    TabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    TabBtn.BorderSizePixel = 0
+    TabBtn.Text = tabName
+    TabBtn.TextColor3 = Color3.fromRGB(150, 150, 165)
+    TabBtn.TextSize = 13
+    TabBtn.Font = Enum.Font.Gotham
+    TabBtn.Parent = SideBar
+    
+    local TabCorner = Instance.new("UICorner")
+    TabCorner.CornerRadius = UDim.new(0, 5)
+    TabCorner.Parent = TabBtn
+
+    local Indicator = Instance.new("Frame")
+    Indicator.Name = "Indicator"
+    Indicator.Size = UDim2.new(0, 3, 0, 18)
+    Indicator.Position = UDim2.new(0, 2, 0.5, -9)
+    Indicator.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    Indicator.BorderSizePixel = 0
+    Indicator.Visible = false
+    Indicator.Parent = TabBtn
+
+    local PageFrame = Instance.new("ScrollingFrame")
+    PageFrame.Name = "Page_" .. tabName
+    PageFrame.Size = UDim2.new(1, 0, 1, 0)
+    PageFrame.BackgroundTransparency = 1
+    PageFrame.BorderSizePixel = 0
+    PageFrame.ScrollBarThickness = 4
+    PageFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
+    PageFrame.Visible = false
+    PageFrame.Parent = ContentContainer
+
+    local ListLayout = Instance.new("UIListLayout")
+    ListLayout.Padding = UDim.new(0, 8)
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Parent = PageFrame
+
+    TabBtn.MouseButton1Click:Connect(function()
+        for _, btn in pairs(tabButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+            btn.TextColor3 = Color3.fromRGB(150, 150, 165)
+            if btn:FindFirstChild("Indicator") then btn.Indicator.Visible = false end
+        end
+        for _, page in pairs(tabFrames) do page.Visible = false end
+
+        TabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        TabBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
+        Indicator.Visible = true
+        PageFrame.Visible = true
+    end)
+
+    table.insert(tabButtons, TabBtn)
+    table.insert(tabFrames, PageFrame)
+
+    return PageFrame
+end
+
+local function addToggle(parentPage, text, defaultState, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -8, 0, 38)
+    Frame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+    Frame.BorderSizePixel = 0
+    Frame.Parent = parentPage
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(42, 42, 54)
+    Stroke.Thickness = 1
+    Stroke.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -60, 1, 0)
+    Label.Position = UDim2.new(0, 12, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    local Switch = Instance.new("TextButton")
+    Switch.Size = UDim2.new(0, 45, 0, 22)
+    Switch.Position = UDim2.new(1, -52, 0.5, -11)
+    Switch.BackgroundColor3 = defaultState and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(45, 45, 58)
+    Switch.Text = defaultState and "ON" or "OFF"
+    Switch.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Switch.TextSize = 10
+    Switch.Font = Enum.Font.GothamBold
+    Switch.Parent = Frame
+
+    local SwitchCorner = Instance.new("UICorner")
+    SwitchCorner.CornerRadius = UDim.new(0, 4)
+    SwitchCorner.Parent = Switch
+
+    local state = defaultState
+    Switch.MouseButton1Click:Connect(function()
+        state = not state
+        Switch.BackgroundColor3 = state and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(45, 45, 58)
+        Switch.Text = state and "ON" or "OFF"
+        callback(state)
+    end)
+end
+
+local function addButton(parentPage, text, callback)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, -8, 0, 38)
+    Button.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+    Button.BorderSizePixel = 0
+    Button.Text = "  " .. text
+    Button.TextColor3 = Color3.fromRGB(220, 220, 230)
+    Button.TextSize = 13
+    Button.Font = Enum.Font.Gotham
+    Button.TextXAlignment = Enum.TextXAlignment.Left
+    Button.Parent = parentPage
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Button
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(42, 42, 54)
+    Stroke.Thickness = 1
+    Stroke.Parent = Button
+
+    Button.MouseButton1Click:Connect(callback)
+end
+
+local function addInput(parentPage, text, defaultVal, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -8, 0, 38)
+    Frame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+    Frame.BorderSizePixel = 0
+    Frame.Parent = parentPage
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(42, 42, 54)
+    Stroke.Thickness = 1
+    Stroke.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -70, 1, 0)
+    Label.Position = UDim2.new(0, 12, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    local TextBox = Instance.new("TextBox")
+    TextBox.Size = UDim2.new(0, 50, 0, 22)
+    TextBox.Position = UDim2.new(1, -58, 0.5, -11)
+    TextBox.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    TextBox.Text = tostring(defaultVal)
+    TextBox.TextColor3 = Color3.fromRGB(0, 170, 255)
+    TextBox.TextSize = 12
+    TextBox.Font = Enum.Font.GothamBold
+    TextBox.Parent = Frame
+
+    local BoxCorner = Instance.new("UICorner")
+    BoxCorner.CornerRadius = UDim.new(0, 4)
+    BoxCorner.Parent = TextBox
+
+    TextBox.FocusLost:Connect(function()
+        local num = tonumber(TextBox.Text)
+        if num then callback(num) else TextBox.Text = tostring(defaultVal) end
+    end)
+end
+
+-- =======================================================
+-- 4. CREATE TABS
+-- =======================================================
+
+local MainTab = createTab("หน้าหลัก")
+local InnocentTab = createTab("ผู้บริสุทธิ์")
+local MurdererTab = createTab("ฆาตกร")
+local SheriffTab = createTab("นายอำเภอ")
+local ESPTab = createTab("ESP")
+local ExeTab = createTab("exe ทุก map")
+local UniversalScriptTab = createTab("script ใช้ได้ทุกแมพ")
+
+-- Default Show First Tab
+tabButtons[1].BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+tabButtons[1].TextColor3 = Color3.fromRGB(0, 170, 255)
+tabButtons[1].Indicator.Visible = true
+tabFrames[1].Visible = true
+
+---------------------------------------------------------
+-- [STATUS BAR] แถบแสดงสถานะ Real-time (อยู่บนสุดของหน้าหลัก)
+---------------------------------------------------------
+local statusFrame = Instance.new("Frame")
+statusFrame.Name = "TopStatusBar"
+statusFrame.Size = UDim2.new(1, -8, 0, 36)
+statusFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+statusFrame.BorderSizePixel = 0
+statusFrame.LayoutOrder = -999
+statusFrame.Parent = MainTab
+
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 6)
+statusCorner.Parent = statusFrame
+
+local statusStroke = Instance.new("UIStroke")
+statusStroke.Color = Color3.fromRGB(42, 42, 54)
+statusStroke.Thickness = 1
+statusStroke.Parent = statusFrame
+
+local statusLayout = Instance.new("UIListLayout")
+statusLayout.FillDirection = Enum.FillDirection.Horizontal
+statusLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+statusLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+statusLayout.Padding = UDim.new(0, 14)
+statusLayout.Parent = statusFrame
+
+local function createStatItem(icon, defaultText)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 0, 1, 0)
+    label.AutomaticSize = Enum.AutomaticSize.X
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 12
+    label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    label.Text = icon .. " " .. defaultText
+    return label
+end
+
+local userLabel = createStatItem("👤", LocalPlayer.Name)
+userLabel.Parent = statusFrame
+
+local pingLabel = createStatItem("📡", "0ms")
+pingLabel.Parent = statusFrame
+
+local fpsLabel = createStatItem("🎮", "60 FPS")
+fpsLabel.Parent = statusFrame
+
+local timeLabel = createStatItem("⏰", "00:00")
+timeLabel.Parent = statusFrame
+
+-- ลูปอัปเดตข้อมูล Real-time
+task.spawn(function()
+    local lastUpdate = 0
+    local frameCount = 0
+    RunService.RenderStepped:Connect(function(dt)
+        frameCount = frameCount + 1
+        if tick() - lastUpdate >= 0.5 then
+            local fps = math.round(frameCount / (tick() - lastUpdate))
+            fpsLabel.Text = "🎮 " .. fps .. " FPS"
+            
+            local ping = 0
+            pcall(function()
+                ping = math.round(LocalPlayer:GetNetworkPing() * 1000)
+            end)
+            pingLabel.Text = "📡 " .. ping .. "ms"
+            
+            timeLabel.Text = "⏰ " .. os.date("%H:%M")
+            
+            frameCount = 0
+            lastUpdate = tick()
+        end
+    end)
+end)
+
+---------------------------------------------------------
+-- [1] หมวดหมู่: หน้าหลัก
+---------------------------------------------------------
+addToggle(MainTab, "เปิดใช้งาน วิ่งเร็ว", false, function(v) 
+    SpeedEnabled = v 
+    if not v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = DEFAULT_SPEED
+    end
+end)
+addInput(MainTab, "ปรับความเร็ววิ่ง (WalkSpeed)", WalkSpeedValue, function(v) WalkSpeedValue = v end)
+addToggle(MainTab, "เปิดใช้งาน กระโดดสูง", false, function(v) 
+    JumpEnabled = v 
+    if not v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = DEFAULT_JUMP
+    end
+end)
+addInput(MainTab, "ปรับแรงกระโดด (JumpPower)", JumpPowerValue, function(v) JumpPowerValue = v end)
+addToggle(MainTab, "กระโดดไม่จำกัด (Inf Jump)", false, function(v) InfJumpEnabled = v end)
+addToggle(MainTab, "เดินทะลุสิ่งกีดขวาง (Noclip)", false, function(v) NoclipEnabled = v end)
+
+---------------------------------------------------------
+-- [2] หมวดหมู่: ผู้บริสุทธิ์
+---------------------------------------------------------
+addToggle(InnocentTab, "AFK บนฟ้า (ยืนบนฟ้าไม่ตก)", false, function(v)
+    SkyAFKEnabled = v
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+
+    if SkyAFKEnabled then
+        if hrp then
+            if not SkyPlatform then
+                SkyPlatform = Instance.new("Part")
+                SkyPlatform.Name = "BlazeAFKSkyPart"
+                SkyPlatform.Size = Vector3.new(20, 1, 20)
+                SkyPlatform.Anchored = true
+                SkyPlatform.Transparency = 0.5
+                SkyPlatform.Color = Color3.fromRGB(0, 170, 255)
+                SkyPlatform.Material = Enum.Material.Neon
+                SkyPlatform.Parent = Workspace
+            end
+            local skyPos = hrp.CFrame + Vector3.new(0, 250, 0)
+            SkyPlatform.CFrame = skyPos - Vector3.new(0, 2, 0)
+            hrp.CFrame = skyPos
+        end
+    else
+        if SkyPlatform then
+            SkyPlatform:Destroy()
+            SkyPlatform = nil
+        end
+    end
+end)
+
+---------------------------------------------------------
+-- [3] หมวดหมู่: ฆาตกร
+---------------------------------------------------------
+addButton(MurdererTab, "ดึงทุกคนมาข้างหน้า (Bring All)", function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            plr.Character.HumanoidRootPart.CFrame = hrp.CFrame * CFrame.new(0, 0, -4)
+        end
+    end
+end)
+
+addToggle(MurdererTab, "วาร์ปไปฆ่าทีละคนอัตโนมัติ (Auto Kill)", false, function(v)
+    AutoKillEnabled = v
+    if AutoKillEnabled then
         task.spawn(function()
-            local h = 0
-            while frame and frame.Parent do task.wait(0.01)
-                h = h + 0.006 if h > 1 then h = 0 end
-                stroke.Color = Color3.fromHSV(h, 1, 1)
-            end
-        end)
-        
-        frame:TweenPosition(UDim2.new(1, -330, 0, 50), "Out", "Back", 0.4, true)
-        task.wait(duration or 4)
-        frame:TweenPosition(UDim2.new(1, 300, 0, 50), "In", "Linear", 0.3, true, function() notifyGui:Destroy() end)
-    end)
-end
+            while AutoKillEnabled do
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if not hrp then break end
 
-SendPremiumNotify("NIGHT HUB HYPER VIP V3", "ระบบโหลดฟังก์ชันเสร็จสิ้น / Setup Completed! (2 Languages Mode)", 5)
-
-local Window = WindUI:CreateWindow({
-    Title = "Night Hub X | Luxury MM2 Ultimate (฿500)", Icon = "crown", Author = "by Night Developer", Folder = "NightHubMM2Hyper2Lang",
-    Size = UDim2.fromOffset(680, 550), Transparent = true, Theme = "Dark"
-})
-
--- หน้าต่างย่อยแบบ 2 ภาษา (Thai / English) ชัดเจนคนไทยไม่งง ต่างชาติใช้ได้
-local T_Main      = Window:Tab({Title="Core (หลัก)", Icon="zap"})
-local T_Visuals   = Window:Tab({Title="Visuals (มองทะลุ)", Icon="eye"})
-local T_Sheriff   = Window:Tab({Title="Sheriff (นายอำเภอ)", Icon="crosshair"})
-local T_Murderer  = Window:Tab({Title="Murderer (ฆาตกร)", Icon="skull"})
-local T_Troll     = Window:Tab({Title="Physics Troll (ป่วนฟิสิกส์)", Icon="bomb"})
-local T_Innocent  = Window:Tab({Title="Farm (ฟาร์มเงิน)", Icon="coins"})
-local T_Teleport  = Window:Tab({Title="Warp (วาร์ปแมพ)", Icon="map"})
-local T_Support   = Window:Tab({Title="Misc (บันเทิง)", Icon="smile"})
-local T_Settings  = Window:Tab({Title="Configs (ตั้งค่า)", Icon="sliders"})
-
--- [แกนตัวแปรควบคุมระบบ]
-_G.WalkSpeed = 16 _G.JumpPower = 50 _G.InfJump = false _G.Noclip = false
-_G.EspMurderer = false _G.EspSheriff = false _G.EspInnocent = false _G.EspGunDrop = false
-_G.EspBox = false _G.EspTracer = false
-_G.Alock = false _G.SilentAim = false _G.AutoGrab = false _G.AutoSniper = false _G.SniperWallbang = false
-_G.KnifeAura = false _G.AuraRange = 12
-_G.AutoCoin = false _G.CoinDelay = 0.1 _G.AutoRunAway = false _G.RunDistance = 35 _G.AntiTrap = false
-_G.FullBright = false _G.EmoteSpam = false _G.EmoteType = "dab"
-
--- ตัวแปรระบบชนปลิว
-_G.FlingMurderer = false _G.FlingInnocent = false _G.FlingSheriff = false _G.FlingAll = false
-local selectedPlayerName = ""
-
-_G.RainbowBorder = true
-local currentThemeColor = Color3.fromRGB(0, 162, 255)
-
-local function UpdateUIBorderColor(color)
-    currentThemeColor = color
-    pcall(function()
-        local core = game:GetService("CoreGui")
-        for _, v in pairs(core:GetDescendants()) do
-            if v:IsA("ScreenGui") and (v.Name:find("Wind") or v.Name:find("Night")) then
-                for _, child in pairs(v:GetDescendants()) do
-                    if child:IsA("UIStroke") then child.Color = color child.Thickness = 2.6
-                    elseif child.Name == "Glow" or child.Name == "Border" or child.Name == "Outline" then
-                        if child:IsA("ImageLabel") then child.ImageColor3 = color
-                        elseif child:IsA("Frame") then child.BackgroundColor3 = color end
-                    end
-                end
-            end
-        end
-    end)
-end
-
-task.spawn(function()
-    local hue = 0
-    while task.wait(0.01) do
-        if _G.RainbowBorder then
-            hue = hue + 0.003 if hue > 1 then hue = 0 end
-            UpdateUIBorderColor(Color3.fromHSV(hue, 1, 1))
-        end
-    end
-end)
-
-local function GetGun()
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v.Name == "GunDrop" or (v:IsA("Part") and v:FindFirstChild("Gun") and v.Parent.Name == "Temp") then return v end
-    end return nil
-end
-local function GetMurderer()
-    for _, v in pairs(game.Players:GetPlayers()) do
-        if v ~= lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-            if v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife") then return v end
-        end
-    end return nil
-end
-
-local function ApplyFlingVelocity(targetPlayer)
-    if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-        local targetHRP = targetPlayer.Character.HumanoidRootPart
-        local forceDirection = (targetHRP.Position - lp.Character.HumanoidRootPart.Position).Unit
-        if forceDirection.Magnitude == 0 then forceDirection = Vector3.new(0, 1, 0) end
-        pcall(function()
-            targetHRP.AssemblyLinearVelocity = (forceDirection * 6500) + Vector3.new(0, 4000, 0)
-        end)
-    end
-end
-
--- ==================== [ 1. CORE MOVEMENT (หมวดหลักแก้ความเร็ว) ] ====================
-T_Main:Slider({Title="WalkSpeed (ความเร็วการเดิน)", Min=16, Max=250, Default=16, Callback=function(v) _G.WalkSpeed = v end})
-T_Main:Button({Title="⚡ Set Speed: Normal (ความเร็วปกติ - 16)", Callback=function() _G.WalkSpeed = 16 end})
-T_Main:Button({Title="⚡ Set Speed: Fast (ความเร็วสปีด - 50)", Callback=function() _G.WalkSpeed = 50 end})
-T_Main:Button({Title="⚡ Set Speed: Hyper (ความเร็วสูงสุด - 120)", Callback=function() _G.WalkSpeed = 120 end})
-T_Main:Slider({Title="JumpPower (แรงกระโดดสูง)", Min=50, Max=350, Default=50, Callback=function(v) _G.JumpPower = v end})
-T_Main:Toggle({Title="Infinite Jump (กระโดดรัวกลางอากาศ)", Callback=function(s) _G.InfJump = s end})
-T_Main:Toggle({Title="Noclip Engine (เดินทะลุกำแพง/สิ่งกีดขวาง)", Callback=function(s) _G.Noclip = s end})
-T_Main:Button({Title="🔄 Hard Respawn (รีเซ็ตตัวละครแก้บั๊ก)", Callback=function() lp.Character:BreakJoints() end})
-
--- ==================== [ 2. ADVANCED VISUALS (แก้บั๊กระบบมองทะลุสีตรงเป๊ะแล้วมึง) ] ====================
-T_Visuals:Toggle({Title="ESP Murderer [Red] (มองทะลุฆาตกร [สีแดง])", Callback=function(s) _G.EspMurderer = s end})
-T_Visuals:Toggle({Title="ESP Sheriff [Blue] (มองทะลุนายอำเภอ [สีฟ้า])", Callback=function(s) _G.EspSheriff = s end})
-T_Visuals:Toggle({Title="ESP Innocents [Green] (มองทะลุคนธรรมดา [สีเขียว])", Callback=function(s) _G.EspInnocent = s end})
-T_Visuals:Toggle({Title="ESP Gun Drop [Yellow] (มองทะลุปืนตกพื้น [สีเหลือง])", Callback=function(s) _G.EspGunDrop = s end})
-T_Visuals:Paragraph({Title="Extra ESP Options", Desc="ตัวเลือกเสริมแสดงผลสายเลเซอร์ชี้เป้า"})
-T_Visuals:Toggle({Title="Render Snaplines (เปิดเส้นเลเซอร์ลากหาเป้าหมาย)", Callback=function(s) _G.EspTracer = s end})
-
--- ระบบลูปจัดลำดับคัดกรองสี ESP แบบรื้อโค้ดใหม่ ทำงานเสถียร 100%
-task.spawn(function()
-    while task.wait(0.4) do
-        for _, v in pairs(game.Players:GetPlayers()) do
-            if v ~= lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                local isM = v.Backpack:FindFirstChild("Knife") or v.Character:FindFirstChild("Knife")
-                local isS = v.Backpack:FindFirstChild("Gun") or v.Character:FindFirstChild("Gun")
-                
-                local allowed = false
-                local targetColor = Color3.fromRGB(0, 255, 0) -- สีเขียวเริ่มต้น
-                
-                -- ตรวจสอบเงื่อนไขสีตามที่มึงระบุ
-                if isM and _G.EspMurderer then 
-                    allowed = true targetColor = Color3.fromRGB(255, 0, 0) -- ฆาตกรสีแดงแน่นอน
-                elseif isS and _G.EspSheriff then 
-                    allowed = true targetColor = Color3.fromRGB(0, 162, 255) -- นายอำเภอสีฟ้าชัวร์
-                elseif not isM and not isS and _G.EspInnocent then 
-                    allowed = true targetColor = Color3.fromRGB(0, 255, 0) -- ผู้บริสุทธิ์สีเขียวใส
-                end
-                
-                local hrp = v.Character.HumanoidRootPart
-                if allowed then
-                    -- สร้างระบบ Highlight ครอบตัวละครทะลุกำแพงเสถียรที่สุด
-                    local hl = v.Character:FindFirstChild("NightHighlight") or Instance.new("Highlight")
-                    hl.Name = "NightHighlight"
-                    hl.Parent = v.Character
-                    hl.FillColor = targetColor
-                    hl.OutlineColor = Color3.fromRGB(255, 255, 255)
-                    hl.FillTransparency = 0.4
-                    hl.OutlineTransparency = 0
-                    hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-                    
-                    if _G.EspTracer then
-                        local att0 = hrp:FindFirstChild("HubAtt") or Instance.new("Attachment", hrp) att0.Name = "HubAtt"
-                        local myAtt = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and (lp.Character.HumanoidRootPart:FindFirstChild("HubMyAtt") or Instance.new("Attachment", lp.Character.HumanoidRootPart))
-                        if myAtt then myAtt.Name = "HubMyAtt"
-                            local beam = hrp:FindFirstChild("HubBeam") or Instance.new("Beam", hrp)
-                            beam.Name = "HubBeam" beam.Attachment0 = att0 beam.Attachment1 = myAtt beam.Color = ColorSequence.new(targetColor) beam.Width0 = 0.15 beam.Width1 = 0.15 beam.FaceCamera = true
-                        end
-                    else if hrp:FindFirstChild("HubBeam") then hrp.HubBeam:Destroy() end end
-                else
-                    if v.Character:FindFirstChild("NightHighlight") then v.Character.NightHighlight:Destroy() end
-                    if hrp:FindFirstChild("HubBeam") then hrp.HubBeam:Destroy() end
-                end
-            end
-        end
-        -- ลูปตรวจจับระบบปืนตก (สีเหลืองเหลืองอร่าม)
-        local g = GetGun()
-        if g and _G.EspGunDrop then
-            local hl = g:FindFirstChild("GunHighlight") or Instance.new("Highlight")
-            hl.Name = "GunHighlight"
-            hl.Parent = g
-            hl.FillColor = Color3.fromRGB(255, 255, 0) -- สีเหลืองปืนตก
-            hl.FillTransparency = 0.3
-            hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        elseif g and not _G.EspGunDrop and g:FindFirstChild("GunHighlight") then g.GunHighlight:Destroy() end
-    end
-end)
-
--- ==================== [ 3. SHERIFF AIMBOT (หมวดนายอำเภอ) ] ====================
-T_Sheriff:Toggle({Title="Smooth Aimlock Camera (ล็อกเป้ากล้องแบบเนียนตา)", Callback=function(s) _G.Alock = s end})
-T_Sheriff:Toggle({Title="Silent Aim Vector (สอยกระสุนตรงเข้าหัวออโต้)", Callback=function(s) _G.SilentAim = s end})
-T_Sheriff:Toggle({Title="Auto Grab Gun (วาร์ปไปเก็บปืนทันทีเมื่อตก)", Callback=function(s) _G.AutoGrab = s end})
-T_Sheriff:Toggle({Title="Line-of-Sight Auto Sniper (สอยฆาตกรระยะไกลเมื่อเห็น)", Callback=function(s) _G.AutoSniper = s end})
-T_Sheriff:Toggle({Title="Bypass Anti-Wallbang (เปิดโหมดยิงทะลุกำแพงดักหน้า)", Callback=function(s) _G.SniperWallbang = s end})
-
-task.spawn(function()
-    while task.wait(0.1) do
-        if _G.AutoGrab then local g = GetGun() if g and lp.Character then lp.Character.HumanoidRootPart.CFrame = g.CFrame end end
-        if _G.AutoSniper then
-            local murderer = GetMurderer()
-            local gun = lp.Character:FindFirstChild("Gun") or lp.Backpack:FindFirstChild("Gun")
-            if murderer and murderer.Character and murderer.Character:FindFirstChild("Head") and murderer.Character.Humanoid.Health > 0 and gun then
-                if gun.Parent == lp.Backpack then gun.Parent = lp.Character end
-                local targetPos = murderer.Character.Head.Position
-                local fireReady = false
-                if _G.SniperWallbang then fireReady = true
-                else
-                    local origin = lp.Character.Head.Position
-                    local raycastParams = RaycastParams.new() raycastParams.FilterDescendantsInstances = {lp.Character} raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-                    local raycastResult = workspace:Raycast(origin, (targetPos - origin), raycastParams)
-                    if raycastResult and raycastResult.Instance:IsDescendantOf(murderer.Character) then fireReady = true end
-                end
-                if fireReady then
-                    local remote = gun:FindFirstChild("KnifeServer") or gun:FindFirstChild("WeaponServer") or gun:FindFirstChild("ShootGun")
-                    if remote and remote:IsA("RemoteEvent") then remote:FireServer(targetPos)
-                    else tweens:Create(workspace.CurrentCamera, TweenInfo.new(0.1, Enum.EasingStyle.Sine), {CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, targetPos)}):Play() gun:Activate() end
-                end
-            end
-        end
-    end
-end)
-
--- ==================== [ 4. MURDERER RAGE (หมวดฆาตกร) ] ====================
-T_Murderer:Toggle({Title="Knife Aura Master (ออร่ามีดสับออโต้รอบทิศทาง)", Callback=function(s) _G.KnifeAura = s end})
-T_Murderer:Slider({Title="Aura Range Distance (ตั้งค่าระยะมีดสับ)", Min=5, Max=30, Default=12, Callback=function(v) _G.AuraRange = v end})
-T_Murderer:Button({Title="💀 Slaughter Kill All (วาร์ปสังหารหมู่กวาดเซิร์ฟ)", Callback=function()
-    local k = lp.Character:FindFirstChild("Knife") or lp.Backpack:FindFirstChild("Knife")
-    if k then if k.Parent==lp.Backpack then k.Parent=lp.Character end for _,v in pairs(game.Players:GetPlayers()) do if v~=lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then lp.Character.HumanoidRootPart.CFrame = v.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,1) task.wait(0.1) k:Activate() end end end
-end})
-T_Murderer:Button({Title="🧲 Bring All Innocent (ดึงทุกคนมากองตรงหน้าเพื่อสับ)", Callback=function()
-    local k = lp.Character:FindFirstChild("Knife") or lp.Backpack:FindFirstChild("Knife")
-    if k and lp.Character then if k.Parent == lp.Backpack then k.Parent = lp.Character end for _, v in pairs(game.Players:GetPlayers()) do if v ~= lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then v.Character.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -2) end end end
-end})
-
-task.spawn(function()
-    while task.wait(0.1) do
-        if _G.KnifeAura then
-            local k = lp.Character:FindFirstChild("Knife") or lp.Backpack:FindFirstChild("Knife")
-            if k and lp.Character then
-                for _, p in pairs(game.Players:GetPlayers()) do
-                    if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                        if (p.Character.HumanoidRootPart.Position - lp.Character.HumanoidRootPart.Position).magnitude < _G.AuraRange then k:Activate() end
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- ==================== [ 5. PHYSICS TROLL (หมวดป่วนฟิสิกส์เดินชนปลิวแยก 5 ฟังก์ชัน) ] ====================
-T_Troll:Toggle({Title="1. Fling Murderer (เดินชนฆาตกรปลิวออกนอกแมพ)", Callback=function(s) _G.FlingMurderer = s end})
-T_Troll:Toggle({Title="2. Fling Innocent (เดินชนคนปกติ/ผู้บริสุทธิ์ปลิวระเบิด)", Callback=function(s) _G.FlingInnocent = s end})
-T_Troll:Toggle({Title="3. Fling Sheriff (เดินชนนายอำเภอปลิวบินทะลุโลก)", Callback=function(s) _G.FlingSheriff = s end})
-T_Troll:Toggle({Title="4. Fling Everyone (เดินชนทุกคนในห้องปลิวกระจาย)", Callback=function(s) _G.FlingAll = s end})
-T_Troll:Paragraph({Title="Target Single Player", Desc="ระบุชื่อคนเดี่ยวที่จะสั่งวาร์ปไปชนให้กระเด็น"})
-T_Troll:Input({Title="Enter Player Name (พิมพ์ชื่อคนที่จะให้ปลิว)", Placeholder="พิมพ์ชื่อที่นี่...", Callback=function(t) selectedPlayerName = t end})
-T_Troll:Button({Title="🎯 5. Teleport & Fling Target (วาร์ปไปกระแทกให้ปลิวทันที)", Callback=function()
-    if selectedPlayerName ~= "" then
-        local target = nil
-        for _, p in pairs(game.Players:GetPlayers()) do
-            if p ~= lp and (p.Name:lower():find(selectedPlayerName:lower()) or p.DisplayName:lower():find(selectedPlayerName:lower())) then target = p break end
-        end
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and lp.Character then
-            local oldCF = lp.Character.HumanoidRootPart.CFrame
-            for i = 1, 12 do
-                if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                    lp.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
-                    ApplyFlingVelocity(target)
-                end task.wait(0.01)
-            end
-            lp.Character.HumanoidRootPart.CFrame = oldCF
-        end
-    end
-end})
-
-task.spawn(function()
-    while task.wait(0.05) do
-        if _G.FlingMurderer or _G.FlingInnocent or _G.FlingSheriff or _G.FlingAll then
-            for _, p in pairs(game.Players:GetPlayers()) do
-                if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-                    if (p.Character.HumanoidRootPart.Position - lp.Character.HumanoidRootPart.Position).Magnitude < 5 then
-                        local isM = p.Backpack:FindFirstChild("Knife") or p.Character:FindFirstChild("Knife")
-                        local isS = p.Backpack:FindFirstChild("Gun") or p.Character:FindFirstChild("Gun")
-                        if _G.FlingAll then ApplyFlingVelocity(p)
-                        elseif isM and _G.FlingMurderer then ApplyFlingVelocity(p)
-                        elseif isS and _G.FlingSheriff then ApplyFlingVelocity(p)
-                        elseif not isM and not isS and _G.FlingInnocent then ApplyFlingVelocity(p) end
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- ==================== [ 6. AUTOMATION FARM (หมวดฟาร์มเงินอัตโนมัติ) ] ====================
-T_Innocent:Toggle({Title="Auto Coin Magnets (ดูดเหรียญข้ามแมพเก็บเงินออโต้)", Callback=function(s) _G.AutoCoin = s end})
-T_Innocent:Slider({Title="Farm Delay Speed (ความเร็วดีเลย์การดูดเหรียญ)", Min=1, Max=10, Default=1, Callback=function(v) _G.CoinDelay = v/10 end})
-T_Innocent:Toggle({Title="Auto Evade Murderer (ตรวจจับวิ่งหนีฆาตกรอัตโนมัติ)", Callback=function(s) _G.AutoRunAway = s end})
-T_Innocent:Toggle({Title="Anti-Bear Traps (ทำลายกับดักห
+                local knife = LocalPlayer.Backpack:FindFirstChild("Knife") or char:FindFirstChild("Knife")
+                if knife and knife.Parent == LocalPlayer.Backpack then
+                    char.Humanoid:EquipTool(kn
