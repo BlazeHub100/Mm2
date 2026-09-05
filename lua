@@ -1,0 +1,588 @@
+-- =======================================================
+-- BLAZE HUB | Roblox Script UI (Blue & Pastel Black Theme)
+-- Fully Integrated with Multiple Universal Scripts & Custom Maps
+-- =======================================================
+
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Parent UI Detection (Support Delta / Executer)
+local parent = (gethui and gethui()) or (syn and syn.protect_gui) or game:GetService("CoreGui") or PlayerGui
+
+if parent:FindFirstChild("BlazeHubGui") then
+    parent:FindFirstChild("BlazeHubGui"):Destroy()
+end
+
+-- ScreenGui Setup
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BlazeHubGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = parent
+
+-- State Variables
+local SpeedEnabled = false
+local WalkSpeedValue = 32
+local JumpEnabled = false
+local JumpPowerValue = 100
+local InfJumpEnabled = false
+local NoclipEnabled = false
+local ESPEnabled = false
+
+local DEFAULT_SPEED = 16
+local DEFAULT_JUMP = 50
+
+-- =======================================================
+-- 1. TOGGLE BUTTON (ปุ่มเปิด/ปิด UI ลอยข้างจอ)
+-- =======================================================
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "ToggleBtn"
+ToggleBtn.Size = UDim2.new(0, 48, 0, 48)
+ToggleBtn.Position = UDim2.new(0, 15, 0.5, -24)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Text = "B"
+ToggleBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
+ToggleBtn.TextSize = 24
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.Parent = ScreenGui
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 12)
+ToggleCorner.Parent = ToggleBtn
+
+local ToggleStroke = Instance.new("UIStroke")
+ToggleStroke.Color = Color3.fromRGB(0, 170, 255)
+ToggleStroke.Thickness = 2
+ToggleStroke.Parent = ToggleBtn
+
+-- =======================================================
+-- 2. MAIN WINDOW
+-- =======================================================
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 520, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -260, 0.5, -160)
+MainFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 8)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(0, 150, 230)
+MainStroke.Thickness = 1.5
+MainStroke.Parent = MainFrame
+
+-- Top Bar
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 35)
+TopBar.BackgroundColor3 = Color3.fromRGB(16, 16, 22)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -70, 1, 0)
+Title.Position = UDim2.new(0, 12, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "BLAZE HUB | Blue & Pastel Edition"
+Title.TextColor3 = Color3.fromRGB(0, 170, 255)
+Title.TextSize = 15
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Name = "CloseBtn"
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Position = UDim2.new(1, -30, 0, 5)
+CloseBtn.BackgroundTransparency = 1
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
+CloseBtn.TextSize = 14
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = TopBar
+
+local MinBtn = Instance.new("TextButton")
+MinBtn.Name = "MinBtn"
+MinBtn.Size = UDim2.new(0, 25, 0, 25)
+MinBtn.Position = UDim2.new(1, -55, 0, 5)
+MinBtn.BackgroundTransparency = 1
+MinBtn.Text = "-"
+MinBtn.TextColor3 = Color3.fromRGB(180, 180, 190)
+MinBtn.TextSize = 18
+MinBtn.Font = Enum.Font.GothamBold
+MinBtn.Parent = TopBar
+
+-- =======================================================
+-- DRAGGABLE & UI BUTTON EVENTS
+-- =======================================================
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+local isMinimized = false
+MinBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    local SideBarRef = MainFrame:FindFirstChild("SideBar")
+    local ContentContainerRef = MainFrame:FindFirstChild("ContentContainer")
+    if SideBarRef and ContentContainerRef then
+        SideBarRef.Visible = not isMinimized
+        ContentContainerRef.Visible = not isMinimized
+    end
+    if isMinimized then
+        MainFrame.Size = UDim2.new(0, 520, 0, 35)
+        MinBtn.Text = "+"
+    else
+        MainFrame.Size = UDim2.new(0, 520, 0, 320)
+        MinBtn.Text = "-"
+    end
+end)
+
+-- ระบบลากหน้าจอ (Draggable)
+local dragging, dragInput, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- =======================================================
+-- 3. SIDEBAR & CONTENT CONTAINER
+-- =======================================================
+local SideBar = Instance.new("Frame")
+SideBar.Name = "SideBar"
+SideBar.Size = UDim2.new(0, 130, 1, -35)
+SideBar.Position = UDim2.new(0, 0, 0, 35)
+SideBar.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+SideBar.BorderSizePixel = 0
+SideBar.Parent = MainFrame
+
+local SideList = Instance.new("UIListLayout")
+SideList.Padding = UDim.new(0, 5)
+SideList.SortOrder = Enum.SortOrder.LayoutOrder
+SideList.Parent = SideBar
+
+local SidePadding = Instance.new("UIPadding")
+SidePadding.PaddingTop = UDim.new(0, 10)
+SidePadding.PaddingLeft = UDim.new(0, 8)
+SidePadding.PaddingRight = UDim.new(0, 8)
+SidePadding.Parent = SideBar
+
+local ContentContainer = Instance.new("Frame")
+ContentContainer.Name = "ContentContainer"
+ContentContainer.Size = UDim2.new(1, -140, 1, -45)
+ContentContainer.Position = UDim2.new(0, 135, 0, 40)
+ContentContainer.BackgroundTransparency = 1
+ContentContainer.Parent = MainFrame
+
+local tabFrames = {}
+local tabButtons = {}
+
+local function createTab(tabName)
+    local TabBtn = Instance.new("TextButton")
+    TabBtn.Name = "Tab_" .. tabName
+    TabBtn.Size = UDim2.new(1, 0, 0, 32)
+    TabBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    TabBtn.BorderSizePixel = 0
+    TabBtn.Text = tabName
+    TabBtn.TextColor3 = Color3.fromRGB(150, 150, 165)
+    TabBtn.TextSize = 13
+    TabBtn.Font = Enum.Font.Gotham
+    TabBtn.Parent = SideBar
+    
+    local TabCorner = Instance.new("UICorner")
+    TabCorner.CornerRadius = UDim.new(0, 5)
+    TabCorner.Parent = TabBtn
+
+    local Indicator = Instance.new("Frame")
+    Indicator.Name = "Indicator"
+    Indicator.Size = UDim2.new(0, 3, 0, 18)
+    Indicator.Position = UDim2.new(0, 2, 0.5, -9)
+    Indicator.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    Indicator.BorderSizePixel = 0
+    Indicator.Visible = false
+    Indicator.Parent = TabBtn
+
+    local PageFrame = Instance.new("ScrollingFrame")
+    PageFrame.Name = "Page_" .. tabName
+    PageFrame.Size = UDim2.new(1, 0, 1, 0)
+    PageFrame.BackgroundTransparency = 1
+    PageFrame.BorderSizePixel = 0
+    PageFrame.ScrollBarThickness = 4
+    PageFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 170, 255)
+    PageFrame.Visible = false
+    PageFrame.Parent = ContentContainer
+
+    local ListLayout = Instance.new("UIListLayout")
+    ListLayout.Padding = UDim.new(0, 8)
+    ListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    ListLayout.Parent = PageFrame
+
+    TabBtn.MouseButton1Click:Connect(function()
+        for _, btn in pairs(tabButtons) do
+            btn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+            btn.TextColor3 = Color3.fromRGB(150, 150, 165)
+            if btn:FindFirstChild("Indicator") then btn.Indicator.Visible = false end
+        end
+        for _, page in pairs(tabFrames) do page.Visible = false end
+
+        TabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        TabBtn.TextColor3 = Color3.fromRGB(0, 170, 255)
+        Indicator.Visible = true
+        PageFrame.Visible = true
+    end)
+
+    table.insert(tabButtons, TabBtn)
+    table.insert(tabFrames, PageFrame)
+
+    return PageFrame
+end
+
+local function addToggle(parentPage, text, defaultState, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -8, 0, 38)
+    Frame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+    Frame.BorderSizePixel = 0
+    Frame.Parent = parentPage
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(42, 42, 54)
+    Stroke.Thickness = 1
+    Stroke.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -60, 1, 0)
+    Label.Position = UDim2.new(0, 12, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    local Switch = Instance.new("TextButton")
+    Switch.Size = UDim2.new(0, 45, 0, 22)
+    Switch.Position = UDim2.new(1, -52, 0.5, -11)
+    Switch.BackgroundColor3 = defaultState and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(45, 45, 58)
+    Switch.Text = defaultState and "ON" or "OFF"
+    Switch.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Switch.TextSize = 10
+    Switch.Font = Enum.Font.GothamBold
+    Switch.Parent = Frame
+
+    local SwitchCorner = Instance.new("UICorner")
+    SwitchCorner.CornerRadius = UDim.new(0, 4)
+    SwitchCorner.Parent = Switch
+
+    local state = defaultState
+    Switch.MouseButton1Click:Connect(function()
+        state = not state
+        Switch.BackgroundColor3 = state and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(45, 45, 58)
+        Switch.Text = state and "ON" or "OFF"
+        callback(state)
+    end)
+end
+
+local function addButton(parentPage, text, callback)
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(1, -8, 0, 38)
+    Button.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+    Button.BorderSizePixel = 0
+    Button.Text = "  " .. text
+    Button.TextColor3 = Color3.fromRGB(220, 220, 230)
+    Button.TextSize = 13
+    Button.Font = Enum.Font.Gotham
+    Button.TextXAlignment = Enum.TextXAlignment.Left
+    Button.Parent = parentPage
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Button
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(42, 42, 54)
+    Stroke.Thickness = 1
+    Stroke.Parent = Button
+
+    Button.MouseButton1Click:Connect(callback)
+end
+
+local function addInput(parentPage, text, defaultVal, callback)
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(1, -8, 0, 38)
+    Frame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+    Frame.BorderSizePixel = 0
+    Frame.Parent = parentPage
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 6)
+    Corner.Parent = Frame
+
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Color = Color3.fromRGB(42, 42, 54)
+    Stroke.Thickness = 1
+    Stroke.Parent = Frame
+
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -70, 1, 0)
+    Label.Position = UDim2.new(0, 12, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+    Label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    Label.TextSize = 13
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = Frame
+
+    local TextBox = Instance.new("TextBox")
+    TextBox.Size = UDim2.new(0, 90, 0, 22)
+    TextBox.Position = UDim2.new(1, -98, 0.5, -11)
+    TextBox.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    TextBox.Text = tostring(defaultVal)
+    TextBox.TextColor3 = Color3.fromRGB(0, 170, 255)
+    TextBox.TextSize = 12
+    TextBox.Font = Enum.Font.GothamBold
+    TextBox.Parent = Frame
+
+    local BoxCorner = Instance.new("UICorner")
+    BoxCorner.CornerRadius = UDim.new(0, 4)
+    BoxCorner.Parent = TextBox
+
+    TextBox.FocusLost:Connect(function()
+        callback(TextBox.Text)
+    end)
+end
+
+-- =======================================================
+-- 4. CREATE TABS
+-- =======================================================
+
+local MainTab = createTab("หน้าหลัก")
+local ESPTab = createTab("ESP")
+local ExeTab = createTab("exe ทุก map")
+local UniversalScriptTab = createTab("script ใช้ได้ทุกแมพ")
+local EggMapTab = createTab("แมพขโมยใข่")
+
+-- Default Show First Tab
+tabButtons[1].BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+tabButtons[1].TextColor3 = Color3.fromRGB(0, 170, 255)
+tabButtons[1].Indicator.Visible = true
+tabFrames[1].Visible = true
+
+---------------------------------------------------------
+-- [STATUS BAR] แถบแสดงสถานะ Real-time
+---------------------------------------------------------
+local statusFrame = Instance.new("Frame")
+statusFrame.Name = "TopStatusBar"
+statusFrame.Size = UDim2.new(1, -8, 0, 36)
+statusFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+statusFrame.BorderSizePixel = 0
+statusFrame.LayoutOrder = -999
+statusFrame.Parent = MainTab
+
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 6)
+statusCorner.Parent = statusFrame
+
+local statusStroke = Instance.new("UIStroke")
+statusStroke.Color = Color3.fromRGB(42, 42, 54)
+statusStroke.Thickness = 1
+statusStroke.Parent = statusFrame
+
+local statusLayout = Instance.new("UIListLayout")
+statusLayout.FillDirection = Enum.FillDirection.Horizontal
+statusLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+statusLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+statusLayout.Padding = UDim.new(0, 14)
+statusLayout.Parent = statusFrame
+
+local function createStatItem(icon, defaultText)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 0, 1, 0)
+    label.AutomaticSize = Enum.AutomaticSize.X
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 12
+    label.TextColor3 = Color3.fromRGB(220, 220, 230)
+    label.Text = icon .. " " .. defaultText
+    return label
+end
+
+local userLabel = createStatItem("👤", LocalPlayer.Name)
+userLabel.Parent = statusFrame
+
+local pingLabel = createStatItem("📡", "0ms")
+pingLabel.Parent = statusFrame
+
+local fpsLabel = createStatItem("🎮", "60 FPS")
+fpsLabel.Parent = statusFrame
+
+local timeLabel = createStatItem("⏰", "00:00")
+timeLabel.Parent = statusFrame
+
+task.spawn(function()
+    local lastUpdate = 0
+    local frameCount = 0
+    RunService.RenderStepped:Connect(function(dt)
+        frameCount = frameCount + 1
+        if tick() - lastUpdate >= 0.5 then
+            local fps = math.round(frameCount / (tick() - lastUpdate))
+            fpsLabel.Text = "🎮 " .. fps .. " FPS"
+            
+            local ping = 0
+            pcall(function()
+                ping = math.round(LocalPlayer:GetNetworkPing() * 1000)
+            end)
+            pingLabel.Text = "📡 " .. ping .. "ms"
+            
+            timeLabel.Text = "⏰ " .. os.date("%H:%M")
+            
+            frameCount = 0
+            lastUpdate = tick()
+        end
+    end)
+end)
+
+---------------------------------------------------------
+-- [1] หมวดหมู่: หน้าหลัก (ระบบทำงานจริง)
+---------------------------------------------------------
+addToggle(MainTab, "เปิดใช้งาน วิ่งเร็ว", false, function(v) 
+    SpeedEnabled = v 
+    if not v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = DEFAULT_SPEED
+    end
+end)
+addInput(MainTab, "ปรับความเร็ววิ่ง (WalkSpeed)", WalkSpeedValue, function(v) 
+    local num = tonumber(v)
+    if num then WalkSpeedValue = num end
+end)
+addToggle(MainTab, "เปิดใช้งาน กระโดดสูง", false, function(v) 
+    JumpEnabled = v 
+    if not v and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        LocalPlayer.Character:FindFirstChildOfClass("Humanoid").JumpPower = DEFAULT_JUMP
+    end
+end)
+addInput(MainTab, "ปรับแรงกระโดด (JumpPower)", JumpPowerValue, function(v) 
+    local num = tonumber(v)
+    if num then JumpPowerValue = num end
+end)
+addToggle(MainTab, "กระโดดไม่จำกัด (Inf Jump)", false, function(v) InfJumpEnabled = v end)
+addToggle(MainTab, "เดินทะลุสิ่งกีดขวาง (Noclip)", false, function(v) NoclipEnabled = v end)
+
+-- ลูปคอยควบคุมระบบหน้าหลักแบบ Real-time
+RunService.Heartbeat:Connect(function()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildOfClass("Humanoid")
+
+    if SpeedEnabled and hum then
+        hum.WalkSpeed = WalkSpeedValue
+    end
+
+    if JumpEnabled and hum then
+        hum.UseJumpPower = true
+        hum.JumpPower = JumpPowerValue
+    end
+
+    if NoclipEnabled and char then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end)
+
+UserInputService.JumpRequest:Connect(function()
+    if InfJumpEnabled then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+---------------------------------------------------------
+-- [2] หมวดหมู่: ESP (ระบบทำงานจริง)
+---------------------------------------------------------
+addToggle(ESPTab, "เปิดใช้งาน ESP มองทะลุ", false, function(v)
+    ESPEnabled = v
+    if not ESPEnabled then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Character and plr.Character:FindFirstChild("BlazeHubHighlight") then
+                plr.Character.BlazeHubHighlight:Destroy()
+            end
+        end
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if ESPEnabled then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer and plr.Character then
+                local char = plr.Character
+                if not char:FindFirstChild("BlazeHubHighlight") then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "BlazeHubHighlight"
+                    highlight.Adornee = char
+                    highlight.FillColor = Color3.fromRGB(0, 170, 255)
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                    highlight.FillTransparency = 0.5
+                    highlight.Parent = char
+                end
+            end
+        end
+    end
+end)
+
+---------------------------------------------------------
+-- [3] หมวดหมู่: exe ทุก map
+---------------------------------------------------------
+local ExecFrame = Instance.new("Frame")
+ExecFrame.Size = UDim2.new(1, -8, 0, 130)
+ExecFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 36)
+ExecFrame.BorderSizePixel = 0
+ExecFrame.Parent = ExeTab
+
+local ExecCorner = Instance.new("UICorner")
+ExecCorner.CornerRadius = UDim.new(0, 6)
+ExecCor
